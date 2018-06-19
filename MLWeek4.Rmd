@@ -1,0 +1,70 @@
+---
+title: "PredictionAssignment"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+#Background
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+Declare library 
+```{r}
+
+library(randomForest)
+library(ggplot2)
+library(caret)
+```
+
+Download CSV files and save in working directory
+```{r}
+
+testdata<-read.csv("pml-testing.csv",na.strings=c("NA","#DIV/0!",""))
+trndata<-read.csv("pml-training.csv",na.strings=c("NA","#DIV/0!",""))
+dim(testdata)
+dim(trndata)
+```
+data clean as mentioned below
+```{r}
+trndata <- trndata[, colSums(is.na(trndata)) == 0]
+testdata <- testdata[, colSums(is.na(testdata)) == 0] 
+trndata <- trndata[,8:60]
+table(trndata$classe)
+table(testdata$classe)
+```
+For predicting training set, now use random forest method to observe the overall performance 
+```{r}
+trainsection <- createDataPartition(y = trndata$classe, p = 0.6, list = F)
+trndata_trn <- trndata[trainsection,]
+trndata_test <- trndata[-trainsection,]
+
+randForModel <- randomForest(classe ~ ., data = trndata_trn)
+print(randForModel)
+predicteddata <- predict(randForModel,trndata_test) 
+
+confusionMatrix(predicteddata, trndata_test$classe)
+#confusionMatrix.train(randForModel)
+```
+We have checked the accuracy is 0.9921. Hence we can aplly on final test set.
+For predicting test set. Applying random forest model from train data.
+```{r}
+dim(testdata)
+dim(trndata)
+
+testdata2 <- testdata[,8:59]
+testdata2$classe <- factor(nrow(testdata2))
+levels(testdata2$classe) <- levels(trndata$classe)
+testdata2 <- rbind(trndata[1,],testdata2)
+testdata2 <- testdata2[2:21,]
+testdata2
+
+predictedtestdata <- predict(randForModel,testdata2, type = "class" ) 
+predictedtestdata
+```
+
+Print the plot.
+```{r}
+plot(randForModel)
+```
